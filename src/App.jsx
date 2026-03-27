@@ -93,28 +93,43 @@ export default function App() {
     }
 
     try {
-      const targetNumber = normalizeNumber(STUDIO_NUMBER);
-      if (referenceImage) {
-        const optimizedMedia = await resizeImage(referenceImage);
-        await axios.post(`${API_URL}/message/sendMedia/${INSTANCE}`, {
-          number: targetNumber,
-          mediaType: "image",
-          mimetype: "image/jpeg",
-          caption: msg,
-          media: optimizedMedia.split('base64,')[1], // Clean base64 for API v2
-          fileName: "referencia.jpg"
-        }, { headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' } });
-      } else {
-        await axios.post(`${API_URL}/message/sendText/${INSTANCE}`, {
-          number: targetNumber,
-          text: msg
-        }, { headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' } });
-      }
+      const targetNumber = normalizeNumber(STUDIO_NUMBER).toString();
+      const payload = referenceImage 
+        ? {
+            number: targetNumber,
+            mediatype: "image",
+            mimetype: "image/jpeg",
+            caption: msg,
+            media: (await resizeImage(referenceImage)).split('base64,')[1],
+            fileName: "referencia.jpg"
+          }
+        : {
+            number: targetNumber,
+            text: msg
+          };
+
+      const endpoint = referenceImage ? 'sendMedia' : 'sendText';
+      console.log(`Enviando para ${endpoint}...`, JSON.stringify(payload, null, 2));
+
+      const response = await axios.post(`${API_URL}/message/${endpoint}/${INSTANCE}`, payload, {
+        headers: { 
+          'apikey': API_KEY, 
+          'Content-Type': 'application/json' 
+        }
+      });
+      
+      console.log('Resposta da API:', response.data);
       setStep(4);
     } catch (error) {
-      console.error('Erro:', error);
+      console.error('Erro detalhado:', error);
+      if (error.response) {
+        console.error('Dados do erro da API:', error.response.data);
+        console.error('Status do erro:', error.response.status);
+      }
       alert('Houve um problema ao enviar. Tente novamente ou entre em contato pelo WhatsApp direto.');
-    } finally { setIsSubmitting(false); }
+    } finally { 
+      setIsSubmitting(false); 
+    }
   };
 
   const variants = {
@@ -135,9 +150,8 @@ export default function App() {
           animate={{ opacity: 1, scale: 1 }}
           className="w-full max-w-[420px] bg-black/85 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border border-white/10 overflow-hidden relative"
         >
-          {/* Header Section */}
           <div className="pt-12 pb-8 px-8 text-center bg-gradient-to-b from-white/[0.05] to-transparent">
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center leading-none">
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center leading-none mb-8">
               <span className="text-6xl font-black tracking-tighter text-white uppercase italic">Bode</span>
               <span className="text-sm font-light tracking-[0.4em] text-white/40 uppercase mt-2">Tattoo & Piercing</span>
             </motion.div>
@@ -146,9 +160,9 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.8 }} 
               animate={{ opacity: 1, scale: 1 }} 
               transition={{ delay: 0.1 }} 
-              className="mt-8 flex justify-center"
+              className="flex justify-center"
             >
-              <img src={logoImg} alt="Logo" className="w-44 sm:w-64 h-auto object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]" />
+              <img src={logoImg} alt="Bode Tattoo & Piercing" className="w-44 sm:w-64 h-auto object-contain drop-shadow-[0_0_30px_rgba(255,255,255,0.15)]" />
             </motion.div>
           </div>
 
